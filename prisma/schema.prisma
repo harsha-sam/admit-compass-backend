@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Program {
+  program_id       Int      @id @default(autoincrement())
+  name             String
+  description      String?
+  attachment_types Json
+  requirements     Json
+  rubrics          Rubric[]
+}
+
+model Rubric {
+  rubric_id  Int       @id @default(autoincrement())
+  program_id Int
+  name       String
+  max_weight Int
+  rulesets   Ruleset[]
+  Program    Program   @relation(fields: [program_id], references: [program_id])
+}
+
+model Ruleset {
+  ruleset_id     Int            @id @default(autoincrement())
+  rubric_id      Int
+  name           String
+  max_weight     Int
+  logical_groups LogicalGroup[]
+  Rubric         Rubric         @relation(fields: [rubric_id], references: [rubric_id])
+}
+
+model LogicalGroup {
+  logic_group_id        Int     @id @default(autoincrement())
+  ruleset_id            Int
+  parent_logic_group_id Int?
+  logic_operator        String // AND, OR, XOR
+  rules                 Rule[]
+  Ruleset               Ruleset @relation(fields: [ruleset_id], references: [ruleset_id])
+}
+
+model Rule {
+  rule_id        Int           @id @default(autoincrement())
+  logic_group_id Int?
+  attribute      String
+  operator       String // ["=", "!=", ">", "<", ">=", "<=", "between", "contains", "does not contain", "starts with", "ends with", "matches regex", "in", "before", "after", "on", "within last", "AI Analysis"])
+  value_1        Json
+  prompt         String? // Only used when operator = 'AI Analysis'
+  weight         Int
+  LogicalGroup   LogicalGroup? @relation(fields: [logic_group_id], references: [logic_group_id])
+}
+
+model Attachment {
+  attachment_id                  Int                @id @default(autoincrement())
+  submission_id                  Int
+  file_path                      String
+  attachment_type                String
+  StudentSubmission              StudentSubmission? @relation(fields: [studentSubmissionSubmission_id], references: [submission_id])
+  studentSubmissionSubmission_id Int?
+}
+
+model StudentSubmission {
+  submission_id    Int          @id @default(autoincrement())
+  program_id       Int
+  student_id       String
+  submission_data  Json
+  evaluation_score Json
+  attachments      Attachment[]
+}
