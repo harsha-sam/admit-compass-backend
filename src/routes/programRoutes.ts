@@ -1,9 +1,14 @@
 import express from 'express';
-import { getPrograms, createProgram } from '../controllers/programController';
+import programController from '../controllers/programController';
+import { validateRequest } from '../middelware/validateRequest';
+import { createProgramSchema, updateProgramSchema } from '../validations/programValidation';
 
 const router = express.Router();
 
-router.get('/', getPrograms);
-router.post('/', createProgram);
+router.get('/', programController.getAllPrograms);
+router.get('/:id', programController.getProgramById);
+router.post('/', validateRequest(createProgramSchema), programController.createProgram);
+router.patch('/:id', validateRequest(updateProgramSchema), programController.updateProgram);
+router.delete('/:id', programController.deleteProgram);
 
 export default router;

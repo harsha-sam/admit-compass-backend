@@ -1,24 +1,64 @@
-import { Request, Response } from 'express';
-import prisma from '../utils/prismaClient';
+// src/controllers/programController.ts
+import { Request, Response, NextFunction } from 'express';
+import programService from '../services/programService';
 
-export const getPrograms = async (req: Request, res: Response) => {
+const getAllPrograms = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const programs = await prisma.program.findMany();
-    res.json(programs);
+    const programs = await programService.getAllPrograms();
+    res.status(200).json(programs);
   } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    next(error);
   }
 };
 
-export const createProgram = async (req: Request, res: Response) => {
-  const { name, description, attachment_types, requirements } = req.body;
-
+const getProgramById = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const program = await prisma.program.create({
-      data: { name, description, attachment_types, requirements },
-    });
+    const { id } = req.params;
+    const program = await programService.getProgramById(Number(id));
+    if (!program) {
+      res.status(404).json({ message: 'Program not found' });
+    }
+    else {
+      res.status(200).json(program);
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+const createProgram = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const program = await programService.createProgram(req.body);
     res.status(201).json(program);
   } catch (error) {
-    res.status(500).json({ error: 'Internal Server Error' });
+    next(error);
   }
+};
+
+const updateProgram = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const updatedProgram = await programService.updateProgram(Number(id), req.body);
+    res.status(200).json(updatedProgram);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteProgram = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    await programService.deleteProgram(Number(id));
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default {
+  getAllPrograms,
+  getProgramById,
+  createProgram,
+  updateProgram,
+  deleteProgram,
 };

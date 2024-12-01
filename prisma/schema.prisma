@@ -1,8 +1,5 @@
 // This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -13,67 +10,156 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProgramCategory {
+  BACHELOR
+  MASTER
+  ACCELERATED
+  PHD
+}
+
+enum AttributeType {
+  text
+  number
+  date
+  datetime
+  boolean
+  dropdown
+  multiselect
+  file
+  calculated
+}
+
+enum AttributeVariant {
+  singleLine
+  multiLine
+}
+
+model AttributeCategory {
+  categoryId   Int       @id @default(autoincrement())
+  name          String    @unique   // Name of the category
+  description   String?   // Optional description of the category
+  attributes    Attribute[] // One-to-many relationship with attributes
+}
+
+model Attribute {
+  attributeId   Int             @id @default(autoincrement())
+  name           String          @unique
+  description    String
+  displayName   String
+  categoryId     Int?
+  type           AttributeType
+  variant        AttributeVariant? // Subtype of the attribute (e.g., singleLine, multiLine)  
+  validationRule Json?           // JSON for validation rules (e.g., min, max)
+  isGlobal       Boolean         // Indicates if the attribute is global or local
+  options        Json?
+  rulesetId      Int?                   
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  ruleset        Ruleset?        @relation(fields: [rulesetId], references: [rulesetId])
+  category      AttributeCategory? @relation(fields: [categoryId], references: [categoryId])
+  rulesetAttributeConfig RulesetAttributeConfig[]
+}
+
 model Program {
-  program_id       Int      @id @default(autoincrement())
-  name             String
+  programId       Int              @id @default(autoincrement())
+  name             String           @unique
   description      String?
-  attachment_types Json
-  requirements     Json
-  rubrics          Rubric[]
+  programCategory ProgramCategory  // Bachelor, Master, etc.
+  programType     String           // Type of degree (e.g., "B.S.", "M.P.S.", "Ph.D.")
+  umbcLink        String?
+  rubricId        Int?             // Foreign key to associate with a rubric
+  rubric           Rubric?          @relation(fields: [rubricId], references: [rubricId])
 }
 
 model Rubric {
-  rubric_id  Int       @id @default(autoincrement())
-  program_id Int
-  name       String
-  max_weight Int
-  rulesets   Ruleset[]
-  Program    Program   @relation(fields: [program_id], references: [program_id])
+  rubricId       Int              @id @default(autoincrement())
+  name            String
+  maxWeight      Int              @default(0) // Default to 0
+  programs         Program[]       // A Rubric can be associated with multiple Programs
+  rubricRulesets  RubricRuleset[] // Many-to-Many relation with Rulesets
+
+  rubricSectionConfig RubricSectionConfig[]
 }
 
 model Ruleset {
-  ruleset_id     Int            @id @default(autoincrement())
-  rubric_id      Int
+  rulesetId     Int            @id @default(autoincrement())
   name           String
-  max_weight     Int
-  logical_groups LogicalGroup[]
-  Rubric         Rubric         @relation(fields: [rubric_id], references: [rubric_id])
+  baseWeight    Int            @default(0)
+  maxWeight     Int
+  rules          Rule[]
+  attributes     Attribute[]    // One-to-many relationship with Attributes
+  rubricRulesets RubricRuleset[] // Relation with the junction table
+  rubricSectionConfig RubricSectionConfig[]
+  rulesetAttributeConfig RulesetAttributeConfig[]
 }
 
-model LogicalGroup {
-  logic_group_id        Int     @id @default(autoincrement())
-  ruleset_id            Int
-  parent_logic_group_id Int?
-  logic_operator        String // AND, OR, XOR
-  rules                 Rule[]
-  Ruleset               Ruleset @relation(fields: [ruleset_id], references: [ruleset_id])
+model RubricRuleset {
+  rubricId  Int @map("rubric_id")
+  rulesetId Int @map("ruleset_id")
+  rubric     Rubric  @relation(fields: [rubricId], references: [rubricId])
+  ruleset    Ruleset @relation(fields: [rulesetId], references: [rulesetId])
+
+  @@id([rubricId, rulesetId]) // Composite primary key for the junction table
 }
 
 model Rule {
-  rule_id        Int           @id @default(autoincrement())
-  logic_group_id Int?
-  attribute      String
-  operator       String // ["=", "!=", ">", "<", ">=", "<=", "between", "contains", "does not contain", "starts with", "ends with", "matches regex", "in", "before", "after", "on", "within last", "AI Analysis"])
-  value_1        Json
-  prompt         String? // Only used when operator = 'AI Analysis'
-  weight         Int
-  LogicalGroup   LogicalGroup? @relation(fields: [logic_group_id], references: [logic_group_id])
+  ruleId            Int           @id @default(autoincrement()) @map("rule_id")
+  rulesetId         Int?           @map("ruleset_id")
+  parentRuleId      Int?          @map("parent_rule_id") // Points to the parent rule for nested logic
+  targetAttributeId Int?        @map("target_attribute_id")
+  targetOptionValue String?     @map("target_option_value")
+  logicOperator     String?       // AND, OR (applicable for parent rules)
+  action           Json?         // Optional to allow parent rules without an action
+  parentRule        Rule?         @relation("RuleHierarchy", fields: [parentRuleId], references: [ruleId])
+  childRules        Rule[]        @relation("RuleHierarchy")
+  ruleset           Ruleset?       @relation(fields: [rulesetId], references: [rulesetId], onDelete: Cascade)
+  conditions        Condition[]   
 }
 
+model Condition {
+  conditionId           Int       @id @default(autoincrement()) @map("condition_id")
+  ruleId                Int       @map("rule_id")
+  evaluatedAttributeId  Int       @map("evaluated_attribute_id")
+  operator              String
+  value1                Json      @map("value_1")
+  value2                Json?     @map("value_2")
+  rule                  Rule      @relation(fields: [ruleId], references: [ruleId], onDelete: Cascade)
+}
+
+model RulesetAttributeConfig {
+  configId         Int        @id @default(autoincrement()) @map("config_id")
+  rulesetId        Int        @map("ruleset_id")
+  attributeId      Int        @map("attribute_id")
+  displayOrder     Int        @map("display_order")
+  ruleset          Ruleset    @relation(fields: [rulesetId], references: [rulesetId])
+  attribute        Attribute  @relation(fields: [attributeId], references: [attributeId])
+}
+
+model RubricSectionConfig {
+  sectionId       Int        @id @default(autoincrement()) @map("section_id")
+  rubricId        Int        @map("rubric_id")
+  rulesetId       Int        @map("ruleset_id")
+  sectionOrder    Int        @map("section_order")
+  sectionName     String     @map("section_name")
+  rubric          Rubric     @relation(fields: [rubricId], references: [rubricId])
+  ruleset         Ruleset    @relation(fields: [rulesetId], references: [rulesetId])
+}
+
+
 model Attachment {
-  attachment_id                  Int                @id @default(autoincrement())
-  submission_id                  Int
-  file_path                      String
-  attachment_type                String
-  StudentSubmission              StudentSubmission? @relation(fields: [studentSubmissionSubmission_id], references: [submission_id])
-  studentSubmissionSubmission_id Int?
+  attachmentId                  Int                @id @default(autoincrement())
+  submissionId                  Int
+  filePath                      String
+  attachmentType                String
+  StudentSubmission              StudentSubmission? @relation(fields: [studentSubmissionSubmissionId], references: [submissionId])
+  studentSubmissionSubmissionId Int?
 }
 
 model StudentSubmission {
-  submission_id    Int          @id @default(autoincrement())
-  program_id       Int
-  student_id       String
-  submission_data  Json
-  evaluation_score Json
+  submissionId    Int          @id @default(autoincrement())
+  programId       Int
+  studentId       String
+  submissionData  Json
+  evaluationScore Json
   attachments      Attachment[]
 }

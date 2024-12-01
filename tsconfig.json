@@ -6,8 +6,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "src",
+    "types": ["node", "jest"]
   },
-  "include": ["src"],
+  "include": ["src", "src/config/database.ts", "tests"],
   "exclude": ["node_modules"]
 }
