@@ -8,10 +8,8 @@ import attributeRoutes from './routes/attributeRoute';
 import attributeCategoryRoutes from './routes/attributeCategoryRoute';
 import rulesetRoutes from './routes/rulesetRoute';
 import ruleRoutes from './routes/ruleRoute';
-import { clerkMiddleware } from '@clerk/express'
 
 const app = express();
-app.use(clerkMiddleware())
 app.use(cors());
 app.use(bodyParser.json());
 
