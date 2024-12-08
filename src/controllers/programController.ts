@@ -55,10 +55,23 @@ const deleteProgram = async (req: Request, res: Response, next: NextFunction) =>
   }
 };
 
+const evaluateProgram = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const submissionData = req.body; // Payload from the client
+
+    const result = await programService.evaluateProgramApplication(Number(id), submissionData);
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export default {
   getAllPrograms,
   getProgramById,
   createProgram,
   updateProgram,
   deleteProgram,
+  evaluateProgram
 };

@@ -1,9 +1,7 @@
 import prisma from '../config/database';
 
 const getAllCategories = async () => {
-  return prisma.attributeCategory.findMany({
-    include: { attributes: true },
-  });
+  return prisma.attributeCategory.findMany({});
 };
 
 const getCategoryById = async (id: number) => {

@@ -8,6 +8,7 @@ export const createProgramSchema = z.object({
     errorMap: () => ({ message: 'Invalid program category' })
   }),
   programType: z.string().min(1, { message: 'Program type is required' }),
+  rulesetId: z.union([z.number(), z.string()]).optional()
 });
 
 export const updateProgramSchema = z.object({

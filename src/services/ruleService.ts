@@ -6,21 +6,22 @@ import { Rule } from '@prisma/client';
 const createRulesetRule = async (rulesetId: number, data: any, parentRuleId: number | null = null) => {
   const { action, logicOperator, conditions, childRules } = data;
 
+  console.log("got", data, parentRuleId)
   // Create the current rule
   const createdRule = await prisma.rule.create({
     data: {
       rulesetId,
       parentRuleId,
-      logicOperator: parentRuleId ? null : logicOperator, // Only root rules have logicOperator
+      logicOperator: logicOperator, // Only root rules have logicOperator
       action: action || {},
       conditions: {
         create: conditions?.map((condition: any) => ({
-          evaluatedAttributeId: condition.evaluatedAttributeId,
+          evaluatedAttributeId: parseInt(condition.evaluatedAttributeId),
           operator: condition.operator,
           value1: condition.value1,
           value2: condition.value2 || null,
         })) || [],
-      },
+      }
     },
     include: { conditions: true, childRules: true },
   });
@@ -59,6 +60,7 @@ const getRulesetRules = async (rulesetId: number): Promise<RuleWithChildren[]> =
 const createAttributeRule = async (attributeId: number, data: any) => {
   const { action, logicOperator, conditions, targetOptionValue } = data;
 
+
   return prisma.rule.create({
     data: {
       targetAttributeId: attributeId,
@@ -67,7 +69,7 @@ const createAttributeRule = async (attributeId: number, data: any) => {
       action,
       conditions: {
         create: conditions.map((condition: any) => ({
-          evaluatedAttributeId: condition.evaluatedAttributeId,
+          evaluatedAttributeId: parseInt(condition.evaluatedAttributeId),
           operator: condition.operator,
           value1: condition.value1,
           value2: condition.value2 || null,

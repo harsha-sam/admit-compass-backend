@@ -8,7 +8,9 @@ const router = express.Router();
 router.get('/', programController.getAllPrograms);
 router.get('/:id', programController.getProgramById);
 router.post('/', validateRequest(createProgramSchema), programController.createProgram);
+router.post('/:id/evaluate', programController.evaluateProgram);
 router.patch('/:id', validateRequest(updateProgramSchema), programController.updateProgram);
 router.delete('/:id', programController.deleteProgram);
+
 
 export default router;

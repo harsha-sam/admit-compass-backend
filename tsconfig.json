@@ -9,6 +9,6 @@
     "rootDir": "src",
     "types": ["node", "jest"]
   },
-  "include": ["src", "src/config/database.ts", "tests"],
+  "include": ["src", "src/config/database.ts"],
   "exclude": ["node_modules"]
 }

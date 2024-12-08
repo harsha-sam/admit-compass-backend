@@ -10,6 +10,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id         Int      @id @default(autoincrement())
+  clerkId    String   @unique
+  email      String   @unique
+  role       String
+  createdAt  DateTime @default(now())
+}
+
 enum ProgramCategory {
   BACHELOR
   MASTER
@@ -18,7 +26,8 @@ enum ProgramCategory {
 }
 
 enum AttributeType {
-  text
+  singleLineText
+  multiLineText
   number
   date
   datetime
@@ -27,11 +36,6 @@ enum AttributeType {
   multiselect
   file
   calculated
-}
-
-enum AttributeVariant {
-  singleLine
-  multiLine
 }
 
 model AttributeCategory {
@@ -48,14 +52,12 @@ model Attribute {
   displayName   String
   categoryId     Int?
   type           AttributeType
-  variant        AttributeVariant? // Subtype of the attribute (e.g., singleLine, multiLine)  
   validationRule Json?           // JSON for validation rules (e.g., min, max)
   isGlobal       Boolean         // Indicates if the attribute is global or local
   options        Json?
   rulesetId      Int?                   
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
-  ruleset        Ruleset?        @relation(fields: [rulesetId], references: [rulesetId])
   category      AttributeCategory? @relation(fields: [categoryId], references: [categoryId])
   rulesetAttributeConfig RulesetAttributeConfig[]
 }
@@ -69,6 +71,7 @@ model Program {
   umbcLink        String?
   rubricId        Int?             // Foreign key to associate with a rubric
   rubric           Rubric?          @relation(fields: [rubricId], references: [rubricId])
+  rulesetId       Int?
 }
 
 model Rubric {
@@ -84,10 +87,11 @@ model Rubric {
 model Ruleset {
   rulesetId     Int            @id @default(autoincrement())
   name           String
+  description   String
   baseWeight    Int            @default(0)
   maxWeight     Int
   rules          Rule[]
-  attributes     Attribute[]    // One-to-many relationship with Attributes
+  attribute_ids  Int[]
   rubricRulesets RubricRuleset[] // Relation with the junction table
   rubricSectionConfig RubricSectionConfig[]
   rulesetAttributeConfig RulesetAttributeConfig[]
